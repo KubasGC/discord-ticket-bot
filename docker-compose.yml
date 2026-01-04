@@ -16,7 +16,8 @@ services:
       MYSQL_USER: tickets
 
   bot:
-    image: eartharoid/discord-tickets:4.0
+    # image: eartharoid/discord-tickets:4.0
+    build: .
     depends_on:
       - mysql
     restart: unless-stopped
