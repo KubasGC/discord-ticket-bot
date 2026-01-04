@@ -81,7 +81,7 @@ module.exports = class TicketCompleter extends Autocompleter {
 		await interaction.respond(
 			await this.getOptions(value, {
 				interaction,
-				open: ['add', 'close', 'force-close', 'remove'].includes(command.name),  // false for `new`, `transcript` etc
+				open: ['add', 'addrole', 'close', 'force-close', 'remove', 'removerole'].includes(command.name),  // false for `new`, `transcript` etc
 				userId,
 			}),
 		);

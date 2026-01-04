@@ -46,6 +46,23 @@ commands:
         title: ✅ Dodano
       description: Dodaj członka do zgłoszenia
       name: dodaj
+    addrole:
+      not_staff:
+        title: ❌ Błąd
+        description: Tylko administracja może dodawać role do zgłoszeń innych osób.
+      added: ➡️ Rola {added} została dodana przez {by}.
+      options:
+        role:
+          name: rola
+          description: Rola, która ma zostać dodana do zgłoszenia
+        ticket:
+          name: zgłoszenie
+          description: Zgłoszenie, do którego ma zostać dodana rola
+      success:
+        description: '{role} została dodana do {ticket}.'
+        title: ✅ Dodano rolę
+      description: Dodaj rolę do zgłoszenia
+      name: dodajrole
     claim:
       not_staff:
         title: ❌ Błąd
@@ -168,6 +185,23 @@ commands:
       success:
         title: ✅ Usunięto
         description: '{member} został usunięty z {ticket}.'
+    removerole:
+      options:
+        role:
+          description: Rola do usunięcia ze zgłoszenia
+          name: rola
+        ticket:
+          description: Zgłoszenie, z którego ma zostać usunięta rola
+          name: zgłoszenie
+      not_staff:
+        description: Tylko administracja może usuwać role ze zgłoszeń innych osób.
+        title: ❌ Błąd
+      description: Usuń rolę ze zgłoszenia
+      name: usunrole
+      removed: ⬅️ Rola {removed} została usunięta przez {by}.
+      success:
+        title: ✅ Usunięto rolę
+        description: '{role} została usunięta z {ticket}.'
     tag:
       description: Użyj tagu
       options:

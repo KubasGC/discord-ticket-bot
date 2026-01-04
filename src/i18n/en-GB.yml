@@ -64,6 +64,23 @@ commands:
       success:
         description: "{member} has been added to {ticket}."
         title: ✅ Added
+    addrole:
+      added: ➡️ {added} role has been added by {by}.
+      description: Add a role to a ticket
+      name: addrole
+      not_staff:
+        description: Only staff members can add roles to others' tickets.
+        title: ❌ Error
+      options:
+        role:
+          description: The role to add to the ticket
+          name: role
+        ticket:
+          description: The ticket to add the role to
+          name: ticket
+      success:
+        description: "{role} has been added to {ticket}."
+        title: ✅ Role Added
     claim:
       description: Claim a ticket
       name: claim
@@ -190,6 +207,23 @@ commands:
       success:
         description: "{member} has been removed from {ticket}."
         title: ✅ Removed
+    removerole:
+      description: Remove a role from a ticket
+      name: removerole
+      not_staff:
+        description: Only staff members can remove roles from others' tickets.
+        title: ❌ Error
+      options:
+        role:
+          description: The role to remove from the ticket
+          name: role
+        ticket:
+          description: The ticket to remove the role from
+          name: ticket
+      removed: ⬅️ {removed} role has been removed by {by}.
+      success:
+        description: "{role} has been removed from {ticket}."
+        title: ✅ Role Removed
     rename:
       description: Rename a ticket channel
       error: There was an error while renaming the channel.
