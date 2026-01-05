@@ -138,21 +138,22 @@ model Guild {
 }
 
 model Question {
-    answers     QuestionAnswer[]
-    createdAt   DateTime         @default(now())
-    id          String           @id @default(uuid())
-    category    Category         @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-    categoryId  Int
-    label       String           @db.VarChar(45)
-    maxLength   Int?             @default(4000)
-    minLength   Int?             @default(0)
-    options     Json             @default("[]")
-    order       Int
-    placeholder String?          @db.VarChar(100)
-    required    Boolean          @default(true)
-    style       Int              @default(2)
-    type        QuestionType     @default(TEXT)
-    value       String?          @db.Text
+    answers      QuestionAnswer[]
+    createdAt    DateTime         @default(now())
+    id           String           @id @default(uuid())
+    category     Category         @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+    categoryId   Int
+    label        String           @db.VarChar(45)
+    maxLength    Int?             @default(4000)
+    minLength    Int?             @default(0)
+    options      Json             @default("[]")
+    order        Int
+    placeholder  String?          @db.VarChar(100)
+    required     Boolean          @default(true)
+    style        Int              @default(2)
+    type         QuestionType     @default(TEXT)
+    value        String?          @db.Text
+    allowedRoles Json             @default("[]")
 
     @@map("questions")
 }
@@ -246,6 +247,7 @@ enum TicketPriority {
 enum QuestionType {
     MENU
     TEXT
+    USER_SELECT
 }
 
 model Panel {

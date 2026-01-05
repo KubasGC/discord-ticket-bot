@@ -12,6 +12,7 @@ const {
 	TextInputBuilder,
 	TextInputStyle,
 	MessageFlags,
+	LabelBuilder,
 } = require('discord.js');
 const emoji = require('node-emoji');
 const ms = require('ms');
@@ -276,7 +277,91 @@ module.exports = class TicketManager {
 			});
 		}
 
-		if (category.questions.length >= 1) {
+		const allQuestions = category.questions.filter(q => q.type === 'TEXT' || q.type === 'MENU' || q.type === 'USER_SELECT');
+
+		if (allQuestions.length >= 1) {
+			/** @type {import("discord.js").Guild} */
+			const guild = this.client.guilds.cache.get(category.guild.id);
+
+			const modalComponents = await Promise.all(
+				allQuestions.map(async q => {
+					if (q.type === 'TEXT') {
+						const field = new TextInputBuilder()
+							.setCustomId(q.id)
+							.setLabel(q.label)
+							.setStyle(q.style)
+							.setMaxLength(Math.min(q.maxLength, 1000))
+							.setMinLength(q.minLength)
+							.setPlaceholder(q.placeholder)
+							.setRequired(q.required);
+						if (q.value) field.setValue(q.value);
+						return new LabelBuilder()
+							.setLabel(q.label)
+							.setTextInputComponent(field);
+					} else if (q.type === 'MENU') {
+						const minValues = q.required ? Math.max(1, q.minLength) : q.minLength;
+						const selectMenu = new StringSelectMenuBuilder()
+							.setCustomId(q.id)
+							.setPlaceholder(q.placeholder || q.label)
+							.setMaxValues(q.maxLength)
+							.setMinValues(minValues)
+							.setRequired(q.required)
+							.setOptions(
+								q.options.map((o, i) => {
+									const builder = new StringSelectMenuOptionBuilder()
+										.setValue(String(i))
+										.setLabel(o.label);
+									if (o.description) builder.setDescription(o.description);
+									if (o.emoji) builder.setEmoji(emoji.hasEmoji(o.emoji) ? emoji.get(o.emoji) : { id: o.emoji });
+									return builder;
+								}),
+							);
+						return new LabelBuilder()
+							.setLabel(q.label)
+							.setStringSelectMenuComponent(selectMenu);
+					} else if (q.type === 'USER_SELECT') {
+						// Get members with allowed roles from cache (roles have member lists)
+						const allowedRoles = q.allowedRoles || [];
+						const eligibleMembersSet = new Set();
+
+						for (const roleId of allowedRoles) {
+							const role = guild.roles.cache.get(roleId);
+							if (role) {
+								role.members.forEach(member => eligibleMembersSet.add(member));
+							}
+						}
+						const eligibleMembers = Array.from(eligibleMembersSet);
+
+						const options = eligibleMembers.map(member => 
+							new StringSelectMenuOptionBuilder()
+								.setValue(member.id)
+								.setLabel(member.displayName)
+								.setDescription(`@${member.user.username}`),
+						);
+
+						if (options.length === 0) {
+							options.push(
+								new StringSelectMenuOptionBuilder()
+									.setValue('none')
+									.setLabel(getMessage('ticket.user_select.no_users'))
+									.setDescription(getMessage('ticket.user_select.no_users_description')),
+							);
+						}
+
+						const userSelectMenu = new StringSelectMenuBuilder()
+							.setCustomId(q.id)
+							.setPlaceholder(q.placeholder || q.label)
+							.setMinValues(q.required ? 1 : 0)
+							.setMaxValues(1)
+							.setOptions(options.slice(0, 25)); // Discord limit: 25 options
+
+						return new LabelBuilder()
+							.setLabel(q.label)
+							.setStringSelectMenuComponent(userSelectMenu);
+					}
+				}),
+			);
+
 			await interaction.showModal(
 				new ModalBuilder()
 					.setCustomId(JSON.stringify({
@@ -286,43 +371,7 @@ module.exports = class TicketManager {
 						referencesTicketId,
 					}))
 					.setTitle(category.name)
-					.setComponents(
-						category.questions
-							.filter(q => q.type === 'TEXT') // TODO: remove this when modals support select menus
-							.map(q => {
-								if (q.type === 'TEXT') {
-									const field = new TextInputBuilder()
-										.setCustomId(q.id)
-										.setLabel(q.label)
-										.setStyle(q.style)
-										.setMaxLength(Math.min(q.maxLength, 1000))
-										.setMinLength(q.minLength)
-										.setPlaceholder(q.placeholder)
-										.setRequired(q.required);
-									if (q.value) field.setValue(q.value);
-									return new ActionRowBuilder().setComponents(field);
-								} else if (q.type === 'MENU') {
-									return new ActionRowBuilder()
-										.setComponents(
-											new StringSelectMenuBuilder()
-												.setCustomId(q.id)
-												.setPlaceholder(q.placeholder || q.label)
-												.setMaxValues(q.maxLength)
-												.setMinValues(q.minLength)
-												.setOptions(
-													q.options.map((o, i) => {
-														const builder = new StringSelectMenuOptionBuilder()
-															.setValue(String(i))
-															.setLabel(o.label);
-														if (o.description) builder.setDescription(o.description);
-														if (o.emoji) builder.setEmoji(emoji.hasEmoji(o.emoji) ? emoji.get(o.emoji) : { id: o.emoji });
-														return builder;
-													}),
-												),
-										);
-								}
-							}),
-					),
+					.addLabelComponents(...modalComponents),
 			);
 		} else if (category.requireTopic && !topic) {
 			await interaction.showModal(
@@ -376,18 +425,41 @@ module.exports = class TicketManager {
 		]);
 
 		let answers;
+		let selectedUserId;
 		if (interaction.isModalSubmit()) {
 			if (action === 'questions') {
 				answers = await Promise.all(
 					category.questions
-						.filter(q => q.type === 'TEXT')
-						.map(async q => ({
-							questionId: q.id,
-							userId: interaction.user.id,
-							value: interaction.fields.getTextInputValue(q.id)
-								? await crypto.queue(w => w.encrypt(interaction.fields.getTextInputValue(q.id)))
-								: '', // TODO: maybe this should be null?
-						})),
+						.filter(q => q.type === 'TEXT' || q.type === 'MENU' || q.type === 'USER_SELECT')
+						.map(async q => {
+							let value = '';
+							if (q.type === 'TEXT') {
+								try {
+									value = interaction.fields.getTextInputValue(q.id);
+								} catch {
+									// Field not found
+								}
+							} else {
+								// MENU or USER_SELECT - get select menu value
+								try {
+									const field = interaction.fields.fields.get(q.id);
+									if (field) {
+										value = Array.isArray(field.values) ? field.values[0] : field.value;
+										// If this is USER_SELECT, store the selected user ID
+										if (q.type === 'USER_SELECT' && value && value !== 'none') {
+											selectedUserId = value;
+										}
+									}
+								} catch {
+									// Field not found
+								}
+							}
+							return {
+								questionId: q.id,
+								userId: interaction.user.id,
+								value: value ? await crypto.queue(w => w.encrypt(value)) : '',
+							};
+						}),
 				);
 				if (category.customTopic) topic = interaction.fields.getTextInputValue(category.customTopic);
 			} else if (action === 'topic') {
@@ -406,27 +478,44 @@ module.exports = class TicketManager {
 			.replace(/{+\s?num(ber)?\s?}+/gi, number === 1488 ? '1487b' : number);
 		const allow = ['ViewChannel', 'ReadMessageHistory', 'SendMessages', 'EmbedLinks', 'AttachFiles'];
 		/** @type {import("discord.js").TextChannel} */
+		const permissionOverwrites = [
+			{
+				deny: ['ViewChannel'],
+				id: guild.roles.everyone.id,
+			},
+			{
+				allow,
+				id: this.client.user.id,
+			},
+			{
+				allow,
+				id: creator.id,
+			},
+			...category.staffRoles.map(id => ({
+				allow,
+				id,
+			})),
+		];
+
+		// Add selected user to channel permissions if specified
+		let selectedMember;
+		if (selectedUserId) {
+			try {
+				selectedMember = await guild.members.fetch(selectedUserId);
+				permissionOverwrites.push({
+					allow,
+					id: selectedUserId,
+				});
+			} catch {
+				this.client.log.warn('Failed to fetch selected user %s', selectedUserId);
+			}
+		}
+
+		/** @type {import("discord.js").TextChannel} */
 		const channel = await guild.channels.create({
 			name: channelName,
 			parent: category.discordCategory,
-			permissionOverwrites: [
-				{
-					deny: ['ViewChannel'],
-					id: guild.roles.everyone.id,
-				},
-				{
-					allow,
-					id: this.client.user.id,
-				},
-				{
-					allow,
-					id: creator.id,
-				},
-				...category.staffRoles.map(id => ({
-					allow,
-					id,
-				})),
-			],
+			permissionOverwrites,
 			rateLimitPerUser: category.ratelimit,
 			reason: `${creator.user.tag} created a ticket`,
 			topic: `${creator}${topic?.length > 0 ? ` | ${topic}` : ''}`,
@@ -482,17 +571,35 @@ module.exports = class TicketManager {
 		if (category.image) embeds[0].setImage(category.image);
 
 		if (answers) {
-			embeds.push(
-				new ExtendedEmbedBuilder()
-					.setColor(category.guild.primaryColour)
-					.setFields(
-						category.questions
-							.map(q => ({
-								name: q.label,
-								value: interaction.fields.getTextInputValue(q.id) || getMessage('ticket.answers.no_value'),
-							})),
-					),
-			);
+			const answerFields = [];
+			for (const answer of answers) {
+				const question = category.questions.find(q => q.id === answer.questionId);
+				if (question) {
+					let displayValue = getMessage('ticket.answers.no_value');
+					if (answer.value) {
+						const decryptedValue = await crypto.queue(w => w.decrypt(answer.value));
+						if (question.type === 'USER_SELECT' && decryptedValue !== 'none') {
+							displayValue = `<@${decryptedValue}>`;
+						} else if (question.type === 'MENU') {
+							const optionIndex = parseInt(decryptedValue, 10);
+							displayValue = question.options[optionIndex]?.label || decryptedValue;
+						} else {
+							displayValue = decryptedValue || getMessage('ticket.answers.no_value');
+						}
+					}
+					answerFields.push({
+						name: question.label,
+						value: displayValue,
+					});
+				}
+			}
+			if (answerFields.length > 0) {
+				embeds.push(
+					new ExtendedEmbedBuilder()
+						.setColor(category.guild.primaryColour)
+						.setFields(answerFields),
+				);
+			}
 		} else if (topic) {
 			embeds.push(
 				new ExtendedEmbedBuilder()
@@ -544,13 +651,14 @@ module.exports = class TicketManager {
 		}
 
 		const pings = category.pingRoles.map(r => `<@&${r}>`).join(' ');
+		const selectedUserPing = selectedMember ? `<@${selectedMember.id}>` : '';
 
 		const sent = await channel.send({
 			components: components.components.length >= 1 ? [components] : [],
 			content: getMessage('ticket.opening_message.content', {
 				creator: interaction.user.toString(),
 				staff: pings ? pings + ',' : '',
-			}),
+			}) + (selectedUserPing ? `\n${getMessage('ticket.opening_message.selected_user', { user: selectedUserPing })}` : ''),
 			embeds,
 		});
 

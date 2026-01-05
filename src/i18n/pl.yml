@@ -430,6 +430,14 @@ modals:
     placeholder: Czego dotyczy te zgłoszenie?
 ticket:
   claimed: 🙌 {user} przejął to zgłoszenie.
+  edit:
+    no_editable_fields: "Brak edytowalnych pól w tym zgłoszeniu."
+  user_select:
+    prompt: "Wybierz użytkownika dla: {label}"
+    invalid_role: "❌ Wybrany użytkownik nie posiada wymaganej roli."
+    user_not_found: "❌ Nie można znaleźć wybranego użytkownika."
+    no_users: "Brak dostępnych użytkowników"
+    no_users_description: "Nie znaleziono użytkowników z wymaganymi rolami"
   close:
     closed:
       description: Ten kanał zostanie usunięty za kilka sekund…
@@ -481,6 +489,7 @@ ticket:
     content: "{staff}\n{creator} utworzył nowe zgłoszenie\n"
     fields:
       topic: Temat
+    selected_user: "👤 Wybrany użytkownik: {user}"
   released: ♻️ {user} zwolnił te zgłoszenie.
   working_hours:
     next:

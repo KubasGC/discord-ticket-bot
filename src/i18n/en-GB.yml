@@ -498,6 +498,14 @@ ticket:
   answers:
     no_value: "*No response*"
   claimed: 🙌 {user} has claimed this ticket.
+  edit:
+    no_editable_fields: "There are no editable fields in this ticket."
+  user_select:
+    prompt: "Please select a user for: {label}"
+    invalid_role: "❌ The selected user does not have the required role."
+    user_not_found: "❌ Could not find the selected user."
+    no_users: "No users available"
+    no_users_description: "No users with the required roles were found"
   close:
     closed:
       description: This channel will be deleted in a few seconds…
@@ -546,6 +554,7 @@ ticket:
       {creator} has created a new ticket
     fields:
       topic: Topic
+    selected_user: "👤 Selected user: {user}"
   references_message:
     description: References [a message]({url}) sent {timestamp} by {author}.
     title: ℹ️ Reference

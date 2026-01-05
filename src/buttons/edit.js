@@ -6,6 +6,7 @@ const {
 	StringSelectMenuOptionBuilder,
 	TextInputBuilder,
 	TextInputStyle,
+	LabelBuilder,
 } = require('discord.js');
 const emoji = require('node-emoji');
 const { pools } = require('../lib/threads');
@@ -59,6 +60,62 @@ module.exports = class EditButton extends Button {
 					),
 			);
 		} else {
+			const editableAnswers = ticket.questionAnswers.filter(a => a.question.type === 'TEXT' || a.question.type === 'MENU');
+			
+			if (editableAnswers.length === 0) {
+				// No editable questions (only USER_SELECT), show info message
+				const getMessage = client.i18n.getLocale(ticket.guild.locale);
+				return interaction.reply({
+					content: getMessage('ticket.edit.no_editable_fields') || 'There are no editable fields in this ticket.',
+					flags: 64, // Ephemeral
+				});
+			}
+
+			const labelComponents = await Promise.all(
+				editableAnswers.map(async a => {
+					if (a.question.type === 'TEXT') {
+						const field = new TextInputBuilder()
+							.setCustomId(String(a.id))
+							.setLabel(a.question.label)
+							.setStyle(a.question.style)
+							.setMaxLength(Math.min(a.question.maxLength, 1000))
+							.setMinLength(a.question.minLength)
+							.setPlaceholder(a.question.placeholder)
+							.setRequired(a.question.required);
+						if (a.value) field.setValue(await crypto.queue(w => w.decrypt(a.value)));
+						else if (a.question.value) field.setValue(a.question.value);
+						return new LabelBuilder()
+							.setLabel(a.question.label)
+							.setTextInputComponent(field);
+					} else if (a.question.type === 'MENU') {
+						const minValues = a.question.required ? Math.max(1, a.question.minLength) : a.question.minLength;
+						const selectMenu = new StringSelectMenuBuilder()
+							.setCustomId(a.question.id)
+							.setPlaceholder(a.question.placeholder || a.question.label)
+							.setMaxValues(a.question.maxLength)
+							.setMinValues(minValues)
+							.setRequired(a.question.required)
+							.setOptions(
+								a.question.options.map((o, i) => {
+									const builder = new StringSelectMenuOptionBuilder()
+										.setValue(String(i))
+										.setLabel(o.label);
+									if (o.description) builder.setDescription(o.description);
+									if (o.emoji) {
+										builder.setEmoji(emoji.hasEmoji(o.emoji)
+											? emoji.get(o.emoji)
+											: { id: o.emoji });
+									}
+									return builder;
+								}),
+							);
+						return new LabelBuilder()
+							.setLabel(a.question.label)
+							.setStringSelectMenuComponent(selectMenu);
+					}
+				}),
+			);
+
 			await interaction.showModal(
 				new ModalBuilder()
 					.setCustomId(JSON.stringify({
@@ -66,50 +123,7 @@ module.exports = class EditButton extends Button {
 						edit: true,
 					}))
 					.setTitle(ticket.category.name)
-					.setComponents(
-						await Promise.all(
-							ticket.questionAnswers
-								.filter(a => a.question.type === 'TEXT') // TODO: remove this when modals support select menus
-								.map(async a => {
-									if (a.question.type === 'TEXT') {
-										const field = new TextInputBuilder()
-											.setCustomId(String(a.id))
-											.setLabel(a.question.label)
-											.setStyle(a.question.style)
-											.setMaxLength(Math.min(a.question.maxLength, 1000))
-											.setMinLength(a.question.minLength)
-											.setPlaceholder(a.question.placeholder)
-											.setRequired(a.question.required);
-										if (a.value) field.setValue(await crypto.queue(w => w.decrypt(a.value)));
-										else if (a.question.value) field.setValue(a.question.value);
-										return new ActionRowBuilder().setComponents(field);
-									} else if (a.question.type === 'MENU') {
-										return new ActionRowBuilder()
-											.setComponents(
-												new StringSelectMenuBuilder()
-													.setCustomId(a.question.id)
-													.setPlaceholder(a.question.placeholder || a.question.label)
-													.setMaxValues(a.question.maxLength)
-													.setMinValues(a.question.minLength)
-													.setOptions(
-														a.question.options.map((o, i) => {
-															const builder = new StringSelectMenuOptionBuilder()
-																.setValue(String(i))
-																.setLabel(o.label);
-															if (o.description) builder.setDescription(o.description);
-															if (o.emoji) {
-																builder.setEmoji(emoji.hasEmoji(o.emoji)
-																	? emoji.get(o.emoji)
-																	: { id: o.emoji });
-															}
-															return builder;
-														}),
-													),
-											);
-									}
-								}),
-						),
-					),
+					.addLabelComponents(...labelComponents),
 			);
 		}
 	}

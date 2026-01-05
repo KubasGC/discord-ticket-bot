@@ -137,21 +137,22 @@ model Guild {
 }
 
 model Question {
-    answers     QuestionAnswer[]
-    createdAt   DateTime         @default(now())
-    id          String           @id @default(uuid())
-    category    Category         @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-    categoryId  Int
-    label       String
-    maxLength   Int?             @default(4000)
-    minLength   Int?             @default(0)
-    options     String           @default("[]")
-    order       Int
-    placeholder String?
-    required    Boolean          @default(true)
-    style       Int              @default(2)
-    type        String           @default("TEXT")
-    value       String?
+    answers      QuestionAnswer[]
+    createdAt    DateTime         @default(now())
+    id           String           @id @default(uuid())
+    category     Category         @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+    categoryId   Int
+    label        String
+    maxLength    Int?             @default(4000)
+    minLength    Int?             @default(0)
+    options      String           @default("[]")
+    order        Int
+    placeholder  String?
+    required     Boolean          @default(true)
+    style        Int              @default(2)
+    type         String           @default("TEXT")
+    value        String?
+    allowedRoles String           @default("[]")
 
     @@map("questions")
 }
