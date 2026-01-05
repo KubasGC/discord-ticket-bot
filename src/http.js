@@ -183,7 +183,7 @@ module.exports = async client => {
 		})); // register route
 	});
 
-	const { handler } = await import('@discord-tickets/settings/build/handler.js');
+	const { handler } = await import('../frontend/build/handler.js');
 
 	// https://stackoverflow.com/questions/72317071/how-to-set-up-fastify-correctly-so-that-sveltekit-works-fine
 	fastify.all('/*', {}, (req, res) => handler(req.raw, res.raw, () => {

@@ -126,6 +126,7 @@ model Guild {
     id            String     @id @db.VarChar(19)
     locale        String     @default("en-GB")
     logChannel    String?    @db.VarChar(19)
+    panels        Panel[]
     primaryColour String     @default("#009999")
     staleAfter    Int?
     successColour String     @default("Green")
@@ -245,4 +246,41 @@ enum TicketPriority {
 enum QuestionType {
     MENU
     TEXT
+}
+
+model Panel {
+    id            Int            @id @default(autoincrement())
+    createdAt     DateTime       @default(now())
+    updatedAt     DateTime       @updatedAt
+    guild         Guild          @relation(fields: [guildId], references: [id], onDelete: Cascade)
+    guildId       String         @db.VarChar(19)
+    name          String
+    title         String?        @db.VarChar(256)
+    description   String?        @db.Text
+    image         String?
+    thumbnail     String?
+    type          PanelType      @default(BUTTON)
+    categories    Json           @default("[]")
+    messages      PanelMessage[]
+
+    @@unique([guildId, name])
+    @@map("panels")
+}
+
+model PanelMessage {
+    id        Int      @id @default(autoincrement())
+    createdAt DateTime @default(now())
+    panel     Panel    @relation(fields: [panelId], references: [id], onDelete: Cascade)
+    panelId   Int
+    channelId String   @db.VarChar(19)
+    messageId String   @db.VarChar(19)
+
+    @@unique([channelId, messageId])
+    @@map("panelMessages")
+}
+
+enum PanelType {
+    BUTTON
+    MENU
+    MESSAGE
 }

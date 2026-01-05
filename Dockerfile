@@ -1,5 +1,19 @@
 # syntax=docker/dockerfile:1
 
+FROM node:22-alpine3.20 AS frontend-builder
+
+RUN npm install -g pnpm
+
+WORKDIR /frontend
+
+COPY --link frontend/package.json frontend/pnpm-lock.yaml ./
+
+RUN pnpm install --frozen-lockfile
+
+COPY --link frontend/ .
+
+RUN pnpm run build
+
 FROM node:22-alpine3.20 AS builder
 
 # install required depencencies for node-gyp
@@ -17,6 +31,9 @@ COPY package.json pnpm-lock.yaml ./
 RUN CI=true pnpm install --prod --frozen-lockfile
 
 COPY --link . .
+
+# Copy frontend build from frontend-builder stage
+COPY --from=frontend-builder /frontend/build ./frontend/build
 
 FROM node:22-alpine3.20 AS runner
 LABEL org.opencontainers.image.source=https://github.com/discord-tickets/bot \

@@ -170,6 +170,28 @@ commands:
         references:
           description: The number of a related ticket
           name: references
+    panel:
+      description: Send a saved panel to a channel
+      name: panel
+      not_found:
+        description: The panel with the specified ID was not found.
+        title: ❌ Panel not found
+      no_categories:
+        description: This panel has no categories configured.
+        title: ❌ No categories
+      send_error:
+        description: There was an error while sending the panel. Please check the bot's permissions.
+        title: ❌ Error
+      success:
+        description: The panel has been sent to {channel}.
+        title: ✅ Panel sent
+      options:
+        panel:
+          description: The panel to send (select from list)
+          name: panel
+        channel:
+          description: The channel to send the panel to (defaults to current channel)
+          name: channel
     priority:
       description: Set the priority of a ticket
       name: priority

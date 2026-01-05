@@ -147,6 +147,28 @@ commands:
           name: odnośniki
           description: Numer powiązanego zgłoszenia
       name: nowy
+    panel:
+      description: Wyślij zapisany panel na kanał
+      name: panel
+      not_found:
+        description: Panel o podanym ID nie został znaleziony.
+        title: ❌ Panel nie znaleziony
+      no_categories:
+        description: Ten panel nie ma skonfigurowanych kategorii.
+        title: ❌ Brak kategorii
+      send_error:
+        description: Wystąpił błąd podczas wysyłania panelu. Sprawdź uprawnienia bota.
+        title: ❌ Błąd
+      success:
+        description: Panel został wysłany na {channel}.
+        title: ✅ Panel wysłany
+      options:
+        panel:
+          description: Panel do wysłania (wybierz z listy)
+          name: panel
+        channel:
+          description: Kanał, na który ma zostać wysłany panel (domyślnie bieżący kanał)
+          name: kanał
     priority:
       name: priorytet
       description: Ustaw priorytet zgłoszenia
