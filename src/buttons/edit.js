@@ -76,7 +76,6 @@ module.exports = class EditButton extends Button {
 					if (a.question.type === 'TEXT') {
 						const field = new TextInputBuilder()
 							.setCustomId(String(a.id))
-							.setLabel(a.question.label)
 							.setStyle(a.question.style)
 							.setMaxLength(Math.min(a.question.maxLength, 1000))
 							.setMinLength(a.question.minLength)

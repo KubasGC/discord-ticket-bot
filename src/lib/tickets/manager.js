@@ -288,7 +288,6 @@ module.exports = class TicketManager {
 					if (q.type === 'TEXT') {
 						const field = new TextInputBuilder()
 							.setCustomId(q.id)
-							.setLabel(q.label)
 							.setStyle(q.style)
 							.setMaxLength(Math.min(q.maxLength, 1000))
 							.setMinLength(q.minLength)
